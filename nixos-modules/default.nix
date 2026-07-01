@@ -1,5 +1,6 @@
 {
   # Add your NixOS modules here
   #
-  # my-module = ./my-module;
+  ln-service = ./ln-service;
+
 }

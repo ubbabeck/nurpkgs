@@ -68,7 +68,12 @@ jobs:
           --drv-path --show-trace \
           -I nixpkgs=$(nix-instantiate --find-file nixpkgs) \
           -I $PWD
-    - name: Build nix packages
+    - name: Run NixOS module integration tests
+      # We can't run the module integration tests on ARM due to the runners not having kvm enabled
+      # error: a 'aarch64-linux' with features {kvm, nixos-test} is required to build '/nix/store/hk46b962dbx*-vm-test-run-*.drv', but I am a 'aarch64-linux' with features {benchmark, big-parallel, nixos-test, uid-range}
+      if: matrix.runsOn == 'ubuntu-latest'
+      run: nix flake check --print-build-logs --max-jobs 1
+    - name: Nix build packages
       run: nix shell -f '<nixpkgs>' nix-build-uncached -c nix-build-uncached ci.nix -A cacheOutputs
     - name: Trigger NUR update
       # Don't replace <YOUR_REPO_NAME> here!

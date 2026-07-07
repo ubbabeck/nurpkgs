@@ -14,6 +14,7 @@ on:
 jobs:
   tests:
     strategy:
+      fail-fast: false
       matrix:
         # Set this to notify the global nur package registry that changes are
         # available.
@@ -38,7 +39,12 @@ jobs:
           - nixpkgs=https://github.com/NixOS/nixpkgs/archive/refs/heads/nixpkgs-unstable.tar.gz
           - nixpkgs=https://github.com/NixOS/nixpkgs/archive/refs/heads/nixos-unstable.tar.gz
           - nixpkgs=https://github.com/NixOS/nixpkgs/archive/refs/heads/nixos-26.05.tar.gz
-    runs-on: ubuntu-latest
+        runsOn:
+          - ubuntu-latest
+          - ubuntu-24.04-arm
+          - macos-26-intel
+          - macos-26
+    runs-on: ${{ matrix.runsOn }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v7
@@ -68,7 +74,12 @@ jobs:
           --drv-path --show-trace \
           -I nixpkgs=$(nix-instantiate --find-file nixpkgs) \
           -I $PWD
-    - name: Build nix packages
+    - name: Run NixOS module integration tests
+      # We can't run the module integration tests on ARM due to the runners not having kvm enabled
+      # error: a 'aarch64-linux' with features {kvm, nixos-test} is required to build '/nix/store/hk46b962dbx*-vm-test-run-*.drv', but I am a 'aarch64-linux' with features {benchmark, big-parallel, nixos-test, uid-range}
+      if: matrix.runsOn == 'ubuntu-latest'
+      run: nix flake check --print-build-logs --max-jobs 1
+    - name: Nix build packages
       run: nix shell -f '<nixpkgs>' nix-build-uncached -c nix-build-uncached ci.nix -A cacheOutputs
     - name: Trigger NUR update
       # Don't replace <YOUR_REPO_NAME> here!
